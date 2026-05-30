@@ -1,0 +1,70 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: rudra_mysql
+    restart: always
+
+    environment:
+      MYSQL_ROOT_PASSWORD: root1234
+      MYSQL_DATABASE: taxi_services
+
+    ports:
+      - "3309:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  backend:
+    build: .
+    container_name: rudra_backend
+    restart: always
+
+    depends_on:
+      - mysql
+
+    environment:
+      DB_URL: jdbc:mysql://mysql:3306/taxi_services?createDatabaseIfNotExist=true&useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+      DB_USER: root
+      DB_PASSWORD: root1234
+      FRONTEND_URL: http://localhost:3000
+      APP_LOG_LEVEL: INFO
+
+    ports:
+      - "8080:8080"
+
+    volumes:
+      - uploads:/app/uploads
+
+  prometheus:
+    image: prom/prometheus
+    container_name: rudra_prometheus
+    restart: always
+
+    ports:
+      - "9090:9090"
+
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+    depends_on:
+      - backend
+
+  grafana:
+    image: grafana/grafana
+    container_name: rudra_grafana
+    restart: always
+
+    ports:
+      - "3001:3000"
+
+    depends_on:
+      - prometheus
+
+    volumes:
+      - grafana_data:/var/lib/grafana
+
+volumes:
+  mysql_data:
+  uploads:
+  grafana_data:
